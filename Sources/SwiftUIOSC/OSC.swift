@@ -1,25 +1,26 @@
 import Foundation
 import OSCKit
 import Reachability
+import SwiftUI
 
 public class OSC: ObservableObject, OSCConnectionMonitorDelegate {
     
     public static let shared: OSC = .init()
     
     let client: OSCClient
-//    let server: OSCServer
+    let server: OSCServer
 
-//    // Local IP Address
-//    @Published var _serverAddress: String?
-//    public var serverAddress: String? { _serverAddress }
-//    /// Local Port
-//    @Published public var serverPort: Int = 7000 {
-//        didSet {
-//            server.port = UInt16(serverPort)
-//            listen()
-//        }
-//    }
-//    @Published public var serverPortOpen: Bool = false
+    // Local IP Address
+    @Published var _serverAddress: String?
+    public var serverAddress: String? { _serverAddress }
+    /// Local Port
+    @Published public var serverPort: Int = 7000 {
+        didSet {
+            server.port = UInt16(serverPort)
+            listen()
+        }
+    }
+    @Published public var serverPortOpen: Bool = false
     
     /// Remote IP Address
     @Published public var clientAddress: String = "localhost" {
@@ -41,14 +42,14 @@ public class OSC: ObservableObject, OSCConnectionMonitorDelegate {
     let connectionMonitor: OSCConnectionMonitor
     @Published public var connection: OSCConnection = .unknown
     
-//    var receivers: [String: ([Any]) -> ()] = [:]
+    var receivers: [String: ([Any]) -> ()] = [:]
     
     // MARK: - Life Cycle
     
     init() {
         
         client = OSCClient()
-//        server = OSCServer()
+        server = OSCServer()
 
         taker = OSCTaker()
         
@@ -59,82 +60,84 @@ public class OSC: ObservableObject, OSCConnectionMonitorDelegate {
         client.port = UInt16(clientPort)
         client.delegate = taker
 
-//        server.port = UInt16(serverPort)
-//        server.delegate = taker
+        server.port = UInt16(serverPort)
+        server.delegate = taker
 
-//        listen()
+        listen()
         
-//        taker.take = { address, values in
-//            for receiver in self.receivers {
-//                if receiver.key == address || "/" + receiver.key == address {
-//                    receiver.value(values)
-//                }
-//            }
-//        }
+        taker.take = { address, values in
+            for receiver in self.receivers {
+                if receiver.key == address || "/" + receiver.key == address {
+                    receiver.value(values)
+                }
+            }
+        }
         
     }
     
     // MARK: - Register
     
-//    func register<T: OSCArrayValue>(oscState: OSCState<T>) {
-//        receivers[oscState.address] = { values in
-//            let value: T = .convert(values: values)
-//            print("--->", value)
-//            oscState.receiving = true
-//            oscState.value = value
-//            oscState.receiving = false
-//            print("<---", value)
-//        }
-//    }
+    func register<T: OSCArrayValue>(oscState: OSCState<T>) {
+        receivers[oscState.address] = { values in
+            let value: T = .convert(values: values)
+            print("--->", value)
+            oscState.receiving = true
+            oscState.value = value
+            oscState.receiving = false
+            print("<---", value)
+        }
+    }
     
     // MARK: - Receive
     
-//    func receive<T: OSCArrayValue>(on address: String, to value: Binding<T>) {
-//        receivers[address] = { values in
-//            let tValue: T = .convert(values: values)
-//            print(">>>>>>>", tValue)
-//            value.wrappedValue = tValue
-//        }
-//    }
+    public func receive<T: OSCArrayValue>(on address: String, to value: Binding<T>) {
+        receivers[address] = { values in
+            let tValue: T = .convert(values: values)
+            print(">>>>>>>", tValue)
+            value.wrappedValue = tValue
+        }
+    }
     
-//    func receive<T: OSCArrayValue>(on address: String, state: State<T>) {
-//        receivers[address] = { values in
-//            let value: T = .convert(values: values)
-//            print(">>>>>>>", value)
-//            state.wrappedValue = value
-//        }
-//    }
+    public func receive<T: OSCArrayValue>(on address: String, state: State<T>) {
+        receivers[address] = { values in
+            let value: T = .convert(values: values)
+            print(">>>>>>>", value)
+            state.wrappedValue = value
+        }
+    }
 
-//    func receive(on address: String, _ callback: @escaping ([Any]) -> ()) {
-//        receivers[address] = { values in
-//            callback(values)
-//        }
-//    }
+    public func receive(on address: String, _ callback: @escaping ([Any]) -> ()) {
+        receivers[address] = { values in
+            callback(values)
+        }
+    }
     
-//    func receive(on address: String) {
-//        receivers[address] = { values in
-//            NotificationCenter.default.post(name: .osc, object: nil, userInfo: ["oscValues" : values])
-//        }
-//    }
+    public func receive(on address: String) {
+        receivers[address] = { values in
+            NotificationCenter.default.post(name: Notification.Name("OSC"),
+                                            object: nil,
+                                            userInfo: ["oscValues" : values])
+        }
+    }
     
     // MARK: - Listen
     
-//    func listen() {
-//        serverPortOpen = connectionMonitor.isPortOpen(port: in_port_t(serverPort))
-//        if !serverPortOpen {
-//            print("SwiftUIOSC - Server port not open: \(serverPort)")
-//        }
-//        do {
-//            try server.startListening()
-//            print("SwiftUIOSC - Server listening on port: \(serverPort)")
-//        } catch {
-//            print("SwiftUIOSC - Server failed to listen on port: \(serverPort) - error:", error)
-//        }
-//    }
+    func listen() {
+        serverPortOpen = connectionMonitor.isPortOpen(port: in_port_t(serverPort))
+        if !serverPortOpen {
+            print("SwiftUIOSC - Server port not open: \(serverPort)")
+        }
+        do {
+            try server.startListening()
+            print("SwiftUIOSC - Server listening on port: \(serverPort)")
+        } catch {
+            print("SwiftUIOSC - Server failed to listen on port: \(serverPort) - error:", error)
+        }
+    }
     
     // MARK: - Send
     
-    func send(_ oscArrayValues: OSCArrayValue, at address: String) {
+    public func send(_ oscArrayValues: OSCArrayValue, at address: String) {
         let values: [Any] = oscArrayValues.values
         var address: String = address
         if address.first != "/" {
@@ -152,7 +155,7 @@ public class OSC: ObservableObject, OSCConnectionMonitorDelegate {
     }
     
     func connectionMonitor(ipAddress: String?) {
-//        _serverAddress = ipAddress
+        _serverAddress = ipAddress
     }
     
 }
