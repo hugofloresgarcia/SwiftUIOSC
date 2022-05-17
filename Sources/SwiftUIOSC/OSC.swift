@@ -14,7 +14,7 @@ public class OSC: ObservableObject, OSCConnectionMonitorDelegate {
     @Published var _serverAddress: String?
     public var serverAddress: String? { _serverAddress }
     /// Local Port
-    @Published public var serverPort: Int = 7000 {
+    @Published public var serverPort: Int = 8000 {
         didSet {
             server.port = UInt16(serverPort)
             listen()
@@ -30,7 +30,7 @@ public class OSC: ObservableObject, OSCConnectionMonitorDelegate {
         }
     }
     /// Remote Port
-    @Published public var clientPort: Int = 8000 {
+    @Published public var clientPort: Int = 8001 {
         didSet {
             client.port = UInt16(clientPort)
             print("SwiftUIOSC - Sending to client on port: \(clientPort)")
@@ -175,7 +175,7 @@ class OSCTaker: OSCClientDelegate & OSCPacketDestination {
     public func take(message: OSCMessage) {
         let address: String = message.addressPattern
         let values: [Any] = message.arguments
-        print("SwiftUIOSC - Received OSC at \"\(address)\" with values:", values)
+        print("SwiftUIOSC - Received OSC at \"\(address)\" with values:", values.debugDescription)
         take?(address, values)
     }
     
